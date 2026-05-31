@@ -1,0 +1,9 @@
+﻿<Project>
+  <PropertyGroup>
+    <GameRoot Condition="'$(GameRoot)' == '' and '$(LETHAL_COMPANY_ROOT)' != ''">$(LETHAL_COMPANY_ROOT)</GameRoot>
+    <R2ModmanProfileRoot Condition="'$(R2ModmanProfileRoot)' == '' and '$(R2MODMAN_PROFILE_ROOT)' != ''">$(R2MODMAN_PROFILE_ROOT)</R2ModmanProfileRoot>
+    <GameManagedDir Condition="'$(GameManagedDir)' == '' and '$(GameRoot)' != ''">$(GameRoot)\Lethal Company_Data\Managed</GameManagedDir>
+    <BepInExCoreDir Condition="'$(BepInExCoreDir)' == '' and '$(R2ModmanProfileRoot)' != ''">$(R2ModmanProfileRoot)\BepInEx\core</BepInExCoreDir>
+    <LethalConfigDir Condition="'$(LethalConfigDir)' == '' and '$(R2ModmanProfileRoot)' != ''">$(R2ModmanProfileRoot)\BepInEx\plugins\AinaVT-LethalConfig\LethalConfig</LethalConfigDir>
+  </PropertyGroup>
+</Project>
