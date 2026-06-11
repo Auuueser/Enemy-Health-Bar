@@ -17,6 +17,7 @@ internal sealed class ModConfig
     private readonly ConfigEntry<MaxHealthMode> maxHealthMode;
     private readonly ConfigEntry<float> maxDistance;
     private readonly ConfigEntry<float> scanInterval;
+    private readonly ConfigEntry<bool> hostAuthoritySync;
     private readonly ConfigEntry<float> verticalOffset;
     private readonly ConfigEntry<float> barWidth;
     private readonly ConfigEntry<float> barHeight;
@@ -32,6 +33,7 @@ internal sealed class ModConfig
     private readonly ConfigEntry<bool> debugShowFullHealthEnemies;
     private readonly ConfigEntry<bool> debugDiagnosticsEnabled;
     private readonly ConfigEntry<float> debugDiagnosticsLogInterval;
+    private readonly ConfigEntry<bool> debugLogEnemyHealthSamples;
     private readonly ConfigEntry<bool> debugShowTestBar;
     private DateTime lastConfigWriteTimeUtc;
     private float nextConfigFilePollTime;
@@ -48,6 +50,7 @@ internal sealed class ModConfig
         maxHealthMode = config.Bind(Texts.VisibilitySection, "MaxHealthMode", MaxHealthMode.Hybrid, Texts.MaxHealthModeDescription);
         maxDistance = config.Bind(Texts.VisibilitySection, "MaxDistance", 35f, Texts.MaxDistanceDescription);
         scanInterval = config.Bind(Texts.PerformanceSection, "ScanInterval", 0.2f, Texts.ScanIntervalDescription);
+        hostAuthoritySync = config.Bind(Texts.PerformanceSection, "HostAuthoritySync", true, Texts.HostAuthoritySyncDescription);
         verticalOffset = config.Bind(Texts.LayoutSection, "VerticalOffset", 0.45f, Texts.VerticalOffsetDescription);
         barWidth = config.Bind(Texts.LayoutSection, "BarWidth", 1.25f, Texts.BarWidthDescription);
         barHeight = config.Bind(Texts.LayoutSection, "BarHeight", 0.14f, Texts.BarHeightDescription);
@@ -63,6 +66,7 @@ internal sealed class ModConfig
         debugShowFullHealthEnemies = config.Bind(Texts.DebugSection, "ShowFullHealthEnemies", false, Texts.DebugShowFullHealthEnemiesDescription);
         debugDiagnosticsEnabled = config.Bind(Texts.DebugSection, "DiagnosticsEnabled", false, Texts.DebugDiagnosticsEnabledDescription);
         debugDiagnosticsLogInterval = config.Bind(Texts.DebugSection, "DiagnosticsLogInterval", 3f, Texts.DebugDiagnosticsLogIntervalDescription);
+        debugLogEnemyHealthSamples = config.Bind(Texts.DebugSection, "LogEnemyHealthSamples", false, Texts.DebugLogEnemyHealthSamplesDescription);
         debugShowTestBar = config.Bind(Texts.DebugSection, "ShowTestBar", false, Texts.DebugShowTestBarDescription);
 
         config.SettingChanged += OnConfigChanged;
@@ -83,6 +87,8 @@ internal sealed class ModConfig
 
     public MaxHealthMode MaxHealthMode => maxHealthMode.Value;
 
+    public bool HostAuthoritySync => hostAuthoritySync.Value;
+
     public bool DebugEnabled => debugEnabled.Value;
 
     public bool DiagnosticsEnabled => DebugEnabled && debugDiagnosticsEnabled.Value;
@@ -92,6 +98,8 @@ internal sealed class ModConfig
     public bool DebugShowTestBar => DebugEnabled && debugShowTestBar.Value;
 
     public float DiagnosticsLogInterval => debugDiagnosticsLogInterval.Value < 1f ? 1f : debugDiagnosticsLogInterval.Value;
+
+    public bool DiagnosticsLogEnemyHealthSamples => DiagnosticsEnabled && debugLogEnemyHealthSamples.Value;
 
     public float ScanInterval => scanInterval.Value < 0.02f ? 0.02f : scanInterval.Value;
 
@@ -127,6 +135,8 @@ internal sealed class ModConfig
 
     internal ConfigEntry<float> ScanIntervalEntry => scanInterval;
 
+    internal ConfigEntry<bool> HostAuthoritySyncEntry => hostAuthoritySync;
+
     internal ConfigEntry<float> VerticalOffsetEntry => verticalOffset;
 
     internal ConfigEntry<float> BarWidthEntry => barWidth;
@@ -156,6 +166,8 @@ internal sealed class ModConfig
     internal ConfigEntry<bool> DebugDiagnosticsEnabledEntry => debugDiagnosticsEnabled;
 
     internal ConfigEntry<float> DebugDiagnosticsLogIntervalEntry => debugDiagnosticsLogInterval;
+
+    internal ConfigEntry<bool> DebugLogEnemyHealthSamplesEntry => debugLogEnemyHealthSamples;
 
     internal ConfigEntry<bool> DebugShowTestBarEntry => debugShowTestBar;
 

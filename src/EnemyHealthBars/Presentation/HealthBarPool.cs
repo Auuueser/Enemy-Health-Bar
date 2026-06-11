@@ -30,6 +30,14 @@ internal sealed class HealthBarPool
         return HealthBarView.Create(parent, currentStyle);
     }
 
+    public void Prewarm(int count)
+    {
+        for (var i = pooledViews.Count; i < count; i++)
+        {
+            pooledViews.Push(HealthBarView.Create(parent, currentStyle));
+        }
+    }
+
     public void Release(HealthBarView view)
     {
         view.SetVisible(false);

@@ -5,7 +5,10 @@ public readonly record struct EnemyHealthSnapshot(
     string DisplayName,
     int CurrentHealth,
     int MaxHealth,
-    bool IsDead)
+    bool IsDead,
+    bool IsMaxHealthSettling = false,
+    bool IsSpawnHealthSettling = false,
+    bool IsClientHealthDesynced = false)
 {
     public float HealthFraction
     {

@@ -21,6 +21,7 @@ public static class ConfigTextCatalog
         maxHealthModeName: "Max health mode",
         maxDistanceName: "Maximum display distance",
         scanIntervalName: "Scan interval",
+        hostAuthoritySyncName: "Host authority sync",
         diagnosticsEnabledName: "Enable diagnostic logs",
         diagnosticsLogIntervalName: "Diagnostic log interval",
         verticalOffsetName: "Vertical offset",
@@ -38,6 +39,7 @@ public static class ConfigTextCatalog
         debugShowFullHealthEnemiesName: "Show full-health enemies",
         debugDiagnosticsEnabledName: "Enable diagnostic logs",
         debugDiagnosticsLogIntervalName: "Diagnostic log interval",
+        debugLogEnemyHealthSamplesName: "Log enemy health samples",
         debugShowTestBarName: "Show test bar",
         enabledDescription: "Enable enemy health bars. Applied immediately.",
         showWhenFullHealthDescription: "Show bars for enemies that have not taken damage yet. Applied immediately.",
@@ -45,6 +47,7 @@ public static class ConfigTextCatalog
         maxHealthModeDescription: "How maximum health is resolved: VanillaStrict keeps base-game defaults, Adaptive uses observed instance health, Hybrid keeps special vanilla rules and adapts to observed modded health. Applied immediately.",
         maxDistanceDescription: "Maximum distance for rendering enemy health bars. Set 0 or below for no distance limit. Applied immediately.",
         scanIntervalDescription: "Seconds between enemy list refreshes. Applied immediately.",
+        hostAuthoritySyncDescription: "Use host-provided enemy health when both host and client have this mod installed. Applied immediately.",
         diagnosticsEnabledDescription: "Log low-frequency health bar scan counters for troubleshooting. Applied immediately.",
         diagnosticsLogIntervalDescription: "Seconds between diagnostic log lines when diagnostics are enabled. Applied immediately.",
         verticalOffsetDescription: "World-space offset above the enemy eye transform. Applied immediately.",
@@ -62,6 +65,7 @@ public static class ConfigTextCatalog
         debugShowFullHealthEnemiesDescription: "Debug only: show bars for full-health enemies to verify enemy tracking. Requires debug mode. Applied immediately.",
         debugDiagnosticsEnabledDescription: "Debug only: log low-frequency runtime, camera, scan, and active-bar counters. Requires debug mode. Applied immediately.",
         debugDiagnosticsLogIntervalDescription: "Debug only: seconds between diagnostic log lines. Applied immediately.",
+        debugLogEnemyHealthSamplesDescription: "Debug only: include per-enemy current health, resolved max health, and visibility result in diagnostic logs. Requires debug diagnostics. Applied immediately.",
         debugShowTestBarDescription: "Debug only: render a fixed test health bar in front of the active camera. Requires debug mode. Applied immediately.");
 
     private static readonly ConfigTexts Chinese = new(
@@ -78,6 +82,7 @@ public static class ConfigTextCatalog
         maxHealthModeName: "最大血量模式",
         maxDistanceName: "最大显示距离",
         scanIntervalName: "扫描间隔",
+        hostAuthoritySyncName: "主机权威同步",
         diagnosticsEnabledName: "启用诊断日志",
         diagnosticsLogIntervalName: "诊断日志间隔",
         verticalOffsetName: "垂直偏移",
@@ -95,6 +100,7 @@ public static class ConfigTextCatalog
         debugShowFullHealthEnemiesName: "显示满血怪物",
         debugDiagnosticsEnabledName: "启用诊断日志",
         debugDiagnosticsLogIntervalName: "诊断日志间隔",
+        debugLogEnemyHealthSamplesName: "记录怪物血量采样",
         debugShowTestBarName: "显示测试血条",
         enabledDescription: "启用怪物血条。保存后立即生效。",
         showWhenFullHealthDescription: "显示未受伤怪物的满血血条。保存后立即生效。",
@@ -102,6 +108,7 @@ public static class ConfigTextCatalog
         maxHealthModeDescription: "最大血量计算方式：VanillaStrict 使用原版默认值，Adaptive 使用实际观察到的怪物血量，Hybrid 保留原版特殊规则并适应模组修改后的血量。保存后立即生效。",
         maxDistanceDescription: "血条最大显示距离。设置为 0 或更低表示不限制距离。保存后立即生效。",
         scanIntervalDescription: "刷新怪物列表的间隔秒数。保存后立即生效。",
+        hostAuthoritySyncDescription: "主机和客机都安装本模组时，同步主机端实际怪物血量。保存后立即生效。",
         diagnosticsEnabledDescription: "输出低频血条扫描计数日志，用于排查问题。保存后立即生效。",
         diagnosticsLogIntervalDescription: "启用诊断时，两次诊断日志之间的秒数。保存后立即生效。",
         verticalOffsetDescription: "血条相对怪物眼部锚点的世界空间高度偏移。保存后立即生效。",
@@ -119,5 +126,6 @@ public static class ConfigTextCatalog
         debugShowFullHealthEnemiesDescription: "仅调试：显示满血怪物血条，用于确认怪物追踪是否工作。需要启用调试模式。保存后立即生效。",
         debugDiagnosticsEnabledDescription: "仅调试：输出低频运行时、相机、扫描和活动血条计数日志。需要启用调试模式。保存后立即生效。",
         debugDiagnosticsLogIntervalDescription: "仅调试：两次诊断日志之间的秒数。保存后立即生效。",
+        debugLogEnemyHealthSamplesDescription: "仅调试：在诊断日志中记录每个怪物的当前血量、解析出的满血血量和可见性结果。需要启用诊断日志。保存后立即生效。",
         debugShowTestBarDescription: "仅调试：在活动相机前方渲染固定测试血条。需要启用调试模式。保存后立即生效。");
 }

@@ -15,7 +15,7 @@ public readonly struct HealthBarVisibilityRules
 
     public bool ShouldShow(EnemyHealthSnapshot snapshot, float distanceToCamera)
     {
-        if (snapshot.IsDead || snapshot.CurrentHealth <= 0 || snapshot.MaxHealth <= 0)
+        if (snapshot.IsDead || snapshot.IsMaxHealthSettling || snapshot.IsSpawnHealthSettling || snapshot.CurrentHealth <= 0 || snapshot.MaxHealth <= 0)
         {
             return false;
         }
@@ -30,7 +30,7 @@ public readonly struct HealthBarVisibilityRules
 
     public bool ShouldShowBySquaredDistance(EnemyHealthSnapshot snapshot, float squaredDistanceToCamera)
     {
-        if (snapshot.IsDead || snapshot.CurrentHealth <= 0 || snapshot.MaxHealth <= 0)
+        if (snapshot.IsDead || snapshot.IsMaxHealthSettling || snapshot.IsSpawnHealthSettling || snapshot.CurrentHealth <= 0 || snapshot.MaxHealth <= 0)
         {
             return false;
         }

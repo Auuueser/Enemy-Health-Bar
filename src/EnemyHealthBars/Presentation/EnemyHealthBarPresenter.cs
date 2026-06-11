@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Auuueser.EnemyHealthBars.Configuration;
+using Auuueser.EnemyHealthBars.Core.Configuration;
 using Auuueser.EnemyHealthBars.Core.Domain;
 using UnityEngine;
 
@@ -7,6 +8,9 @@ namespace Auuueser.EnemyHealthBars.Presentation;
 
 internal sealed class EnemyHealthBarPresenter
 {
+    private const float TargetPositionRefreshInterval = 0.1f;
+    private const int PrewarmedViewCount = 4;
+
     private readonly ModConfig config;
     private readonly HealthBarPool pool;
     private readonly HealthBarTargetResolver targetResolver = new();
@@ -18,6 +22,7 @@ internal sealed class EnemyHealthBarPresenter
     {
         this.config = config;
         pool = new HealthBarPool(config, parent);
+        pool.Prewarm(PrewarmedViewCount);
     }
 
     public int ActiveCount => activeBars.Count;
@@ -34,6 +39,7 @@ internal sealed class EnemyHealthBarPresenter
 
         activeBar.Enemy = enemy;
         activeBar.Snapshot = snapshot;
+        activeBar.RefreshPosition(worldPosition, config.VerticalOffset, config.DisplayMode, Time.unscaledTime);
         activeBar.View.SetHealth(snapshot);
         activeBar.View.SetWorldPosition(worldPosition, camera, billboardRotation);
         activeBar.View.SetVisible(true);
@@ -127,7 +133,11 @@ internal sealed class EnemyHealthBarPresenter
                 continue;
             }
 
-            var worldPosition = targetResolver.GetWorldPosition(activeBar.Enemy, config.VerticalOffset, config.DisplayMode);
+            var worldPosition = activeBar.GetWorldPosition(
+                targetResolver,
+                config.VerticalOffset,
+                config.DisplayMode,
+                Time.unscaledTime);
             activeBar.View.SetWorldPosition(worldPosition, camera, billboardRotation);
         }
 
@@ -159,6 +169,14 @@ internal sealed class EnemyHealthBarPresenter
 
     private sealed class ActiveHealthBar
     {
+        private Transform? cachedTransform;
+        private Vector3 cachedLocalPosition;
+        private Vector3 cachedWorldPosition;
+        private HealthBarDisplayMode cachedDisplayMode = (HealthBarDisplayMode)(-1);
+        private float cachedVerticalOffset;
+        private float nextTargetRefreshTime;
+        private bool hasCachedPosition;
+
         public ActiveHealthBar(EnemyAI enemy, HealthBarView view)
         {
             Enemy = enemy;
@@ -170,5 +188,67 @@ internal sealed class EnemyHealthBarPresenter
         public EnemyHealthSnapshot Snapshot { get; set; }
 
         public HealthBarView View { get; }
+
+        public void RefreshPosition(
+            Vector3 worldPosition,
+            float verticalOffset,
+            HealthBarDisplayMode displayMode,
+            float currentTime)
+        {
+            var followTransform = ResolveFollowTransform(Enemy);
+            cachedTransform = followTransform;
+            cachedWorldPosition = worldPosition;
+            cachedLocalPosition = followTransform != null ? followTransform.InverseTransformPoint(worldPosition) : worldPosition;
+            cachedVerticalOffset = verticalOffset;
+            cachedDisplayMode = displayMode;
+            nextTargetRefreshTime = currentTime + TargetPositionRefreshInterval;
+            hasCachedPosition = true;
+        }
+
+        public Vector3 GetWorldPosition(
+            HealthBarTargetResolver targetResolver,
+            float verticalOffset,
+            HealthBarDisplayMode displayMode,
+            float currentTime)
+        {
+            if (!hasCachedPosition ||
+                cachedDisplayMode != displayMode ||
+                cachedVerticalOffset != verticalOffset ||
+                currentTime >= nextTargetRefreshTime)
+            {
+                var resolvedPosition = targetResolver.GetWorldPosition(Enemy, verticalOffset, displayMode);
+                RefreshPosition(resolvedPosition, verticalOffset, displayMode, currentTime);
+                return resolvedPosition;
+            }
+
+            if (cachedTransform == null)
+            {
+                var resolvedPosition = targetResolver.GetWorldPosition(Enemy, verticalOffset, displayMode);
+                RefreshPosition(resolvedPosition, verticalOffset, displayMode, currentTime);
+                return resolvedPosition;
+            }
+
+            cachedWorldPosition = cachedTransform.TransformPoint(cachedLocalPosition);
+            return cachedWorldPosition;
+        }
+
+        private static Transform? ResolveFollowTransform(EnemyAI enemy)
+        {
+            if (enemy == null)
+            {
+                return null;
+            }
+
+            if (enemy is MaskedPlayerEnemy)
+            {
+                var head = enemy.GetRadarHeadTransform();
+                if (head != null)
+                {
+                    return head;
+                }
+            }
+
+            return enemy.transform;
+        }
     }
 }

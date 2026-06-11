@@ -39,13 +39,22 @@ internal sealed class EnemyHealthReader
         var enemyId = enemy.GetInstanceID();
         var displayName = ResolveDisplayName(enemy);
         var maxHealth = maxHealthResolver.Resolve(enemy, displayName);
+        var networkObjectId = enemy.NetworkObject != null ? enemy.NetworkObject.NetworkObjectId : 0UL;
+        var hasAuthoritativeMaxHealth = false;
+        if (EnemyHealthOverrideStore.TryGetMaxHealth(enemyId, networkObjectId, out var authoritativeMaxHealth))
+        {
+            maxHealth = authoritativeMaxHealth;
+            hasAuthoritativeMaxHealth = true;
+        }
 
         sample = new EnemyHealthSample(
             enemyId,
             displayName,
             enemy.enemyHP,
             maxHealth,
-            enemy.isEnemyDead);
+            enemy.isEnemyDead,
+            networkObjectId,
+            hasAuthoritativeMaxHealth);
 
         return true;
     }

@@ -16,6 +16,7 @@ public sealed class ConfigTexts
         string maxHealthModeName,
         string maxDistanceName,
         string scanIntervalName,
+        string hostAuthoritySyncName,
         string diagnosticsEnabledName,
         string diagnosticsLogIntervalName,
         string verticalOffsetName,
@@ -33,6 +34,7 @@ public sealed class ConfigTexts
         string debugShowFullHealthEnemiesName,
         string debugDiagnosticsEnabledName,
         string debugDiagnosticsLogIntervalName,
+        string debugLogEnemyHealthSamplesName,
         string debugShowTestBarName,
         string enabledDescription,
         string showWhenFullHealthDescription,
@@ -40,6 +42,7 @@ public sealed class ConfigTexts
         string maxHealthModeDescription,
         string maxDistanceDescription,
         string scanIntervalDescription,
+        string hostAuthoritySyncDescription,
         string diagnosticsEnabledDescription,
         string diagnosticsLogIntervalDescription,
         string verticalOffsetDescription,
@@ -57,6 +60,7 @@ public sealed class ConfigTexts
         string debugShowFullHealthEnemiesDescription,
         string debugDiagnosticsEnabledDescription,
         string debugDiagnosticsLogIntervalDescription,
+        string debugLogEnemyHealthSamplesDescription,
         string debugShowTestBarDescription)
     {
         GeneralSection = generalSection;
@@ -72,6 +76,7 @@ public sealed class ConfigTexts
         MaxHealthModeName = maxHealthModeName;
         MaxDistanceName = maxDistanceName;
         ScanIntervalName = scanIntervalName;
+        HostAuthoritySyncName = hostAuthoritySyncName;
         DiagnosticsEnabledName = diagnosticsEnabledName;
         DiagnosticsLogIntervalName = diagnosticsLogIntervalName;
         VerticalOffsetName = verticalOffsetName;
@@ -89,6 +94,7 @@ public sealed class ConfigTexts
         DebugShowFullHealthEnemiesName = debugShowFullHealthEnemiesName;
         DebugDiagnosticsEnabledName = debugDiagnosticsEnabledName;
         DebugDiagnosticsLogIntervalName = debugDiagnosticsLogIntervalName;
+        DebugLogEnemyHealthSamplesName = debugLogEnemyHealthSamplesName;
         DebugShowTestBarName = debugShowTestBarName;
         EnabledDescription = enabledDescription;
         ShowWhenFullHealthDescription = showWhenFullHealthDescription;
@@ -96,6 +102,7 @@ public sealed class ConfigTexts
         MaxHealthModeDescription = maxHealthModeDescription;
         MaxDistanceDescription = maxDistanceDescription;
         ScanIntervalDescription = scanIntervalDescription;
+        HostAuthoritySyncDescription = hostAuthoritySyncDescription;
         DiagnosticsEnabledDescription = diagnosticsEnabledDescription;
         DiagnosticsLogIntervalDescription = diagnosticsLogIntervalDescription;
         VerticalOffsetDescription = verticalOffsetDescription;
@@ -113,6 +120,7 @@ public sealed class ConfigTexts
         DebugShowFullHealthEnemiesDescription = debugShowFullHealthEnemiesDescription;
         DebugDiagnosticsEnabledDescription = debugDiagnosticsEnabledDescription;
         DebugDiagnosticsLogIntervalDescription = debugDiagnosticsLogIntervalDescription;
+        DebugLogEnemyHealthSamplesDescription = debugLogEnemyHealthSamplesDescription;
         DebugShowTestBarDescription = debugShowTestBarDescription;
     }
 
@@ -141,6 +149,8 @@ public sealed class ConfigTexts
     public string MaxDistanceName { get; }
 
     public string ScanIntervalName { get; }
+
+    public string HostAuthoritySyncName { get; }
 
     public string DiagnosticsEnabledName { get; }
 
@@ -176,6 +186,8 @@ public sealed class ConfigTexts
 
     public string DebugDiagnosticsLogIntervalName { get; }
 
+    public string DebugLogEnemyHealthSamplesName { get; }
+
     public string DebugShowTestBarName { get; }
 
     public string EnabledDescription { get; }
@@ -189,6 +201,8 @@ public sealed class ConfigTexts
     public string MaxDistanceDescription { get; }
 
     public string ScanIntervalDescription { get; }
+
+    public string HostAuthoritySyncDescription { get; }
 
     public string DiagnosticsEnabledDescription { get; }
 
@@ -223,6 +237,8 @@ public sealed class ConfigTexts
     public string DebugDiagnosticsEnabledDescription { get; }
 
     public string DebugDiagnosticsLogIntervalDescription { get; }
+
+    public string DebugLogEnemyHealthSamplesDescription { get; }
 
     public string DebugShowTestBarDescription { get; }
 }

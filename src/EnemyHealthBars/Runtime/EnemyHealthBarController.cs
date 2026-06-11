@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using Auuueser.EnemyHealthBars.Configuration;
 using Auuueser.EnemyHealthBars.Core.Domain;
 using Auuueser.EnemyHealthBars.Game;
+using Auuueser.EnemyHealthBars.Networking;
 using Auuueser.EnemyHealthBars.Presentation;
 using BepInEx.Logging;
 using UnityEngine;
@@ -10,10 +11,17 @@ namespace Auuueser.EnemyHealthBars.Runtime;
 
 internal sealed class EnemyHealthBarController : MonoBehaviour
 {
+    private const int MaxSampleDiagnosticsPerScan = 8;
+    private const int MissingStateRetentionScans = 3;
+
     private readonly EnemyHealthTracker tracker = new();
     private readonly EnemyHealthReader healthReader = new();
     private readonly EnemyMaxHealthResolver maxHealthResolver = new();
+    private readonly EnemyHealthSyncNetwork networkSync = new();
     private readonly HashSet<int> activeEnemyIds = new();
+    private readonly HashSet<ulong> activeNetworkObjectIds = new();
+    private readonly TransientIdRetentionSet<int> retainedEnemyStateIds = new(MissingStateRetentionScans);
+    private readonly TransientIdRetentionSet<ulong> retainedNetworkStateIds = new(MissingStateRetentionScans);
 
     private ModConfig? config;
     private ManualLogSource? logger;
@@ -60,6 +68,8 @@ internal sealed class EnemyHealthBarController : MonoBehaviour
             presenter.RefreshStyle();
         }
 
+        networkSync.Tick(config.Enabled && config.HostAuthoritySync, Time.unscaledTime);
+
         if (!config.Enabled)
         {
             presenter.Clear();
@@ -97,6 +107,7 @@ internal sealed class EnemyHealthBarController : MonoBehaviour
 
     private void OnDestroy()
     {
+        networkSync.Dispose();
         presenter?.Clear();
     }
 
@@ -108,13 +119,20 @@ internal sealed class EnemyHealthBarController : MonoBehaviour
         }
 
         activeEnemyIds.Clear();
+        activeNetworkObjectIds.Clear();
         var visibilityRules = config.CreateVisibilityRules();
         var cameraPosition = camera.transform.position;
 
         var spawnedEnemies = enemySource.GetSpawnedEnemies();
         if (spawnedEnemies == null)
         {
-            tracker.KeepOnly(activeEnemyIds);
+            var retainedEnemyIds = retainedEnemyStateIds.Update(activeEnemyIds);
+            var retainedNetworkObjectIds = retainedNetworkStateIds.Update(activeNetworkObjectIds);
+            tracker.KeepOnly(retainedEnemyIds);
+            EnemyHealthOverrideStore.KeepOnly(retainedEnemyIds, retainedNetworkObjectIds);
+            networkSync.KeepOnlyClientSnapshots(retainedNetworkObjectIds);
+            networkSync.KeepOnlyHostSnapshots(retainedNetworkObjectIds);
+            networkSync.FlushHostSnapshots();
             presenter.HideMissing(activeEnemyIds);
             LogDiagnosticsIfDue(DiagnosticScanCounts.Empty, camera, "SpawnedEnemies unavailable");
             return;
@@ -124,6 +142,7 @@ internal sealed class EnemyHealthBarController : MonoBehaviour
         {
             Spawned = spawnedEnemies.Count,
         };
+        var sampleDiagnostics = ShouldCollectSampleDiagnostics() ? new List<string>(MaxSampleDiagnosticsPerScan) : null;
 
         for (var i = 0; i < spawnedEnemies.Count; i++)
         {
@@ -131,32 +150,69 @@ internal sealed class EnemyHealthBarController : MonoBehaviour
             if (enemy == null)
             {
                 counts.RejectedMissingEnemy++;
+                AddMissingEnemyDiagnostic(sampleDiagnostics, i);
                 continue;
             }
 
             if (!healthReader.TryRead(enemy, config.ShowInvulnerableEnemies, maxHealthResolver, out var sample, out var readFailure))
             {
                 AddReadFailure(ref counts, readFailure);
+                AddReadFailureDiagnostic(sampleDiagnostics, enemy, readFailure);
                 continue;
             }
 
             counts.Readable++;
             activeEnemyIds.Add(sample.EnemyId);
+            if (sample.NetworkObjectId != 0UL)
+            {
+                activeNetworkObjectIds.Add(sample.NetworkObjectId);
+            }
+
             var snapshot = tracker.Track(sample, config.MaxHealthMode);
+            if (networkSync.TryGetHostSnapshot(sample, out var hostSnapshot))
+            {
+                snapshot = hostSnapshot;
+                ApplyHostSyncedHealth(enemy, sample, snapshot);
+                counts.UsedHostSync++;
+            }
+            else if (networkSync.ShouldSuppressLocalSnapshot(sample, Time.unscaledTime))
+            {
+                counts.HiddenWaitingForHostSync++;
+                AddSampleDiagnostic(sampleDiagnostics, enemy, sample, snapshot, "hiddenWaitingForHostSync");
+                presenter.Hide(sample.EnemyId);
+                continue;
+            }
+
+            networkSync.QueueHostSnapshot(sample, snapshot);
 
             if (snapshot.IsDead)
             {
                 counts.HiddenDead++;
+                AddSampleDiagnostic(sampleDiagnostics, enemy, sample, snapshot, "hiddenDead");
+                presenter.Hide(sample.EnemyId);
+            }
+            else if (snapshot.IsMaxHealthSettling)
+            {
+                counts.HiddenSettling++;
+                AddSampleDiagnostic(sampleDiagnostics, enemy, sample, snapshot, "hiddenSettling");
+                presenter.Hide(sample.EnemyId);
+            }
+            else if (snapshot.IsSpawnHealthSettling)
+            {
+                counts.HiddenSpawnSettling++;
+                AddSampleDiagnostic(sampleDiagnostics, enemy, sample, snapshot, "hiddenSpawnSettling");
                 presenter.Hide(sample.EnemyId);
             }
             else if (snapshot.CurrentHealth <= 0 || snapshot.MaxHealth <= 0)
             {
                 counts.HiddenZeroHealth++;
+                AddSampleDiagnostic(sampleDiagnostics, enemy, sample, snapshot, "hiddenZeroHealth");
                 presenter.Hide(sample.EnemyId);
             }
             else if (!config.ShowFullHealthEnemies && snapshot.IsFullHealth)
             {
                 counts.HiddenFull++;
+                AddSampleDiagnostic(sampleDiagnostics, enemy, sample, snapshot, "hiddenFullHealth");
                 presenter.Hide(sample.EnemyId);
             }
             else
@@ -166,23 +222,33 @@ internal sealed class EnemyHealthBarController : MonoBehaviour
                 if (!visibilityRules.ShouldShowBySquaredDistance(snapshot, squaredDistanceToCamera))
                 {
                     counts.HiddenDistance++;
+                    AddSampleDiagnostic(sampleDiagnostics, enemy, sample, snapshot, "hiddenDistance");
                     presenter.Hide(sample.EnemyId);
                 }
                 else
                 {
                     counts.Shown++;
+                    AddSampleDiagnostic(sampleDiagnostics, enemy, sample, snapshot, "shown");
                     presenter.ShowOrUpdate(enemy, snapshot, worldPosition, camera, billboardRotation);
                 }
             }
         }
 
-        tracker.KeepOnly(activeEnemyIds);
+        var retainedEnemyStateIdsForScan = retainedEnemyStateIds.Update(activeEnemyIds);
+        var retainedNetworkStateIdsForScan = retainedNetworkStateIds.Update(activeNetworkObjectIds);
+        tracker.KeepOnly(retainedEnemyStateIdsForScan);
+        EnemyHealthOverrideStore.KeepOnly(retainedEnemyStateIdsForScan, retainedNetworkStateIdsForScan);
+        networkSync.KeepOnlyClientSnapshots(retainedNetworkStateIdsForScan);
+        networkSync.KeepOnlyHostSnapshots(retainedNetworkStateIdsForScan);
+        networkSync.FlushHostSnapshots();
         presenter.HideMissing(activeEnemyIds);
         counts.Active = presenter.ActiveCount;
-        LogDiagnosticsIfDue(counts, camera, "scan");
+        counts.RetainedEnemyStates = retainedEnemyStateIdsForScan.Count - activeEnemyIds.Count;
+        counts.RetainedNetworkStates = retainedNetworkStateIdsForScan.Count - activeNetworkObjectIds.Count;
+        LogDiagnosticsIfDue(counts, camera, "scan", sampleDiagnostics);
     }
 
-    private void LogDiagnosticsIfDue(DiagnosticScanCounts counts, Camera? camera, string source)
+    private void LogDiagnosticsIfDue(DiagnosticScanCounts counts, Camera? camera, string source, List<string>? sampleDiagnostics = null)
     {
         if (config == null || logger == null || !config.DiagnosticsEnabled || Time.unscaledTime < nextDiagnosticLogTime)
         {
@@ -192,11 +258,30 @@ internal sealed class EnemyHealthBarController : MonoBehaviour
         nextDiagnosticLogTime = Time.unscaledTime + config.DiagnosticsLogInterval;
         var cameraText = camera != null ? $"{camera.name}@{FormatVector(camera.transform.position)} mask={camera.cullingMask}" : "none";
         var unresolvedNames = maxHealthResolver.FormatUnresolvedNamesForDiagnostics(5);
+        var sampleDiagnosticsText = sampleDiagnostics != null && sampleDiagnostics.Count > 0
+            ? $", samples=[{string.Join("; ", sampleDiagnostics)}]"
+            : string.Empty;
         logger.LogInfo(
             $"Diagnostics {source}: camera={cameraText}, spawned={counts.Spawned}, readable={counts.Readable}, shown={counts.Shown}, active={counts.Active}, " +
             $"rejectedNull={counts.RejectedMissingEnemy}, rejectedNoType={counts.RejectedMissingEnemyType}, rejectedCannotDie={counts.RejectedCannotDie}, " +
-            $"hiddenDead={counts.HiddenDead}, hiddenZeroHp={counts.HiddenZeroHealth}, hiddenFull={counts.HiddenFull}, hiddenDistance={counts.HiddenDistance}, " +
-            $"unresolvedMaxHealth={maxHealthResolver.UnresolvedCount}, unresolvedNames={unresolvedNames}");
+            $"hostSync={networkSync.HasHostSync}, usedHostSync={counts.UsedHostSync}, hiddenWaitingHostSync={counts.HiddenWaitingForHostSync}, " +
+            $"hiddenDead={counts.HiddenDead}, hiddenSettling={counts.HiddenSettling}, hiddenSpawnSettling={counts.HiddenSpawnSettling}, hiddenZeroHp={counts.HiddenZeroHealth}, hiddenFull={counts.HiddenFull}, hiddenDistance={counts.HiddenDistance}, " +
+            $"retainedEnemyStates={counts.RetainedEnemyStates}, retainedNetworkStates={counts.RetainedNetworkStates}, unresolvedMaxHealth={maxHealthResolver.UnresolvedCount}, unresolvedNames={unresolvedNames}{sampleDiagnosticsText}");
+    }
+
+    private void ApplyHostSyncedHealth(EnemyAI enemy, EnemyHealthSample sample, EnemyHealthSnapshot snapshot)
+    {
+        if (snapshot.IsDead || snapshot.CurrentHealth <= 0 || enemy.isEnemyDead)
+        {
+            return;
+        }
+
+        if (enemy.enemyHP != snapshot.CurrentHealth)
+        {
+            enemy.enemyHP = snapshot.CurrentHealth;
+        }
+
+        networkSync.ConfirmHostSnapshotApplied(sample, snapshot);
     }
 
     private void UpdateDebugTestBar(Camera camera, Quaternion billboardRotation)
@@ -244,6 +329,66 @@ internal sealed class EnemyHealthBarController : MonoBehaviour
         }
     }
 
+    private bool ShouldCollectSampleDiagnostics()
+    {
+        return config != null &&
+            config.DiagnosticsLogEnemyHealthSamples &&
+            Time.unscaledTime >= nextDiagnosticLogTime;
+    }
+
+    private static void AddMissingEnemyDiagnostic(List<string>? sampleDiagnostics, int index)
+    {
+        if (!CanAddSampleDiagnostic(sampleDiagnostics))
+        {
+            return;
+        }
+
+        sampleDiagnostics!.Add($"readFailure:index={index}, reason=MissingEnemy");
+    }
+
+    private static void AddReadFailureDiagnostic(List<string>? sampleDiagnostics, EnemyAI enemy, EnemyHealthReadFailure failure)
+    {
+        if (!CanAddSampleDiagnostic(sampleDiagnostics))
+        {
+            return;
+        }
+
+        var displayName = enemy.enemyType != null && !string.IsNullOrWhiteSpace(enemy.enemyType.enemyName)
+            ? enemy.enemyType.enemyName
+            : enemy.name;
+        var canDie = enemy.enemyType != null ? enemy.enemyType.canDie.ToString() : "unknown";
+        var networkObjectId = enemy.NetworkObject != null ? enemy.NetworkObject.NetworkObjectId.ToString() : "none";
+        sampleDiagnostics!.Add(
+            $"readFailure:name='{displayName}', id={enemy.GetInstanceID()}, netId={networkObjectId}, hp={enemy.enemyHP}, " +
+            $"dead={enemy.isEnemyDead}, canDie={canDie}, reason={failure}");
+    }
+
+    private static void AddSampleDiagnostic(
+        List<string>? sampleDiagnostics,
+        EnemyAI enemy,
+        EnemyHealthSample sample,
+        EnemyHealthSnapshot snapshot,
+        string result)
+    {
+        if (!CanAddSampleDiagnostic(sampleDiagnostics))
+        {
+            return;
+        }
+
+        var canDie = enemy.enemyType != null ? enemy.enemyType.canDie.ToString() : "unknown";
+        var networkObjectId = sample.NetworkObjectId != 0UL ? sample.NetworkObjectId.ToString() : "none";
+        sampleDiagnostics!.Add(
+            $"sample:name='{sample.DisplayName}', id={sample.EnemyId}, netId={networkObjectId}, current={sample.CurrentHealth}, " +
+            $"resolvedMax={sample.MaxHealth}, trackedMax={snapshot.MaxHealth}, fraction={snapshot.HealthFraction:0.###}, " +
+            $"full={snapshot.IsFullHealth}, settling={snapshot.IsMaxHealthSettling}, spawnSettling={snapshot.IsSpawnHealthSettling}, " +
+            $"clientDesync={snapshot.IsClientHealthDesynced}, dead={snapshot.IsDead}, canDie={canDie}, result={result}");
+    }
+
+    private static bool CanAddSampleDiagnostic(List<string>? sampleDiagnostics)
+    {
+        return sampleDiagnostics != null && sampleDiagnostics.Count < MaxSampleDiagnosticsPerScan;
+    }
+
     private static string FormatVector(Vector3 value)
     {
         return $"({value.x:0.0},{value.y:0.0},{value.z:0.0})";
@@ -260,9 +405,15 @@ internal sealed class EnemyHealthBarController : MonoBehaviour
         public int RejectedMissingEnemy;
         public int RejectedMissingEnemyType;
         public int RejectedCannotDie;
+        public int UsedHostSync;
+        public int HiddenWaitingForHostSync;
         public int HiddenDead;
+        public int HiddenSettling;
+        public int HiddenSpawnSettling;
         public int HiddenZeroHealth;
         public int HiddenFull;
         public int HiddenDistance;
+        public int RetainedEnemyStates;
+        public int RetainedNetworkStates;
     }
 }

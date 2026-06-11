@@ -30,6 +30,7 @@ internal static class LethalConfigIntegration
             AddEnum(config.MaxHealthModeEntry, texts.MaxHealthModeName, texts.VisibilitySection, texts.MaxHealthModeDescription);
             AddFloat(config.MaxDistanceEntry, texts.MaxDistanceName, texts.VisibilitySection, texts.MaxDistanceDescription);
             AddFloat(config.ScanIntervalEntry, texts.ScanIntervalName, texts.PerformanceSection, texts.ScanIntervalDescription);
+            AddBool(config.HostAuthoritySyncEntry, texts.HostAuthoritySyncName, texts.PerformanceSection, texts.HostAuthoritySyncDescription);
             AddFloat(config.VerticalOffsetEntry, texts.VerticalOffsetName, texts.LayoutSection, texts.VerticalOffsetDescription);
             AddFloat(config.BarWidthEntry, texts.BarWidthName, texts.LayoutSection, texts.BarWidthDescription);
             AddFloat(config.BarHeightEntry, texts.BarHeightName, texts.LayoutSection, texts.BarHeightDescription);
@@ -45,6 +46,7 @@ internal static class LethalConfigIntegration
             AddBool(config.DebugShowFullHealthEnemiesEntry, texts.DebugShowFullHealthEnemiesName, texts.DebugSection, texts.DebugShowFullHealthEnemiesDescription);
             AddBool(config.DebugDiagnosticsEnabledEntry, texts.DebugDiagnosticsEnabledName, texts.DebugSection, texts.DebugDiagnosticsEnabledDescription);
             AddFloat(config.DebugDiagnosticsLogIntervalEntry, texts.DebugDiagnosticsLogIntervalName, texts.DebugSection, texts.DebugDiagnosticsLogIntervalDescription);
+            AddBool(config.DebugLogEnemyHealthSamplesEntry, texts.DebugLogEnemyHealthSamplesName, texts.DebugSection, texts.DebugLogEnemyHealthSamplesDescription);
             AddBool(config.DebugShowTestBarEntry, texts.DebugShowTestBarName, texts.DebugSection, texts.DebugShowTestBarDescription);
 
             logger.LogInfo("Registered localized LethalConfig entries.");
