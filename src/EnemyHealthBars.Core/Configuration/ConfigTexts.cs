@@ -36,6 +36,7 @@ public sealed class ConfigTexts
         string debugDiagnosticsLogIntervalName,
         string debugLogEnemyHealthSamplesName,
         string debugShowTestBarName,
+        string barStyleName,
         string enabledDescription,
         string showWhenFullHealthDescription,
         string showInvulnerableEnemiesDescription,
@@ -61,7 +62,8 @@ public sealed class ConfigTexts
         string debugDiagnosticsEnabledDescription,
         string debugDiagnosticsLogIntervalDescription,
         string debugLogEnemyHealthSamplesDescription,
-        string debugShowTestBarDescription)
+        string debugShowTestBarDescription,
+        string barStyleDescription)
     {
         GeneralSection = generalSection;
         VisibilitySection = visibilitySection;
@@ -122,6 +124,8 @@ public sealed class ConfigTexts
         DebugDiagnosticsLogIntervalDescription = debugDiagnosticsLogIntervalDescription;
         DebugLogEnemyHealthSamplesDescription = debugLogEnemyHealthSamplesDescription;
         DebugShowTestBarDescription = debugShowTestBarDescription;
+        BarStyleName = barStyleName;
+        BarStyleDescription = barStyleDescription;
     }
 
     public string GeneralSection { get; }
@@ -241,4 +245,8 @@ public sealed class ConfigTexts
     public string DebugLogEnemyHealthSamplesDescription { get; }
 
     public string DebugShowTestBarDescription { get; }
+
+    public string BarStyleName { get; }
+
+    public string BarStyleDescription { get; }
 }

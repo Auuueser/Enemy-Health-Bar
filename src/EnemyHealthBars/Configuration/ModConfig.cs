@@ -23,6 +23,7 @@ internal sealed class ModConfig
     private readonly ConfigEntry<float> barHeight;
     private readonly ConfigEntry<float> worldScale;
     private readonly ConfigEntry<HealthBarDisplayMode> displayMode;
+    private readonly ConfigEntry<HealthBarVisualStyle> barStyle;
     private readonly ConfigEntry<bool> showHealthNumbers;
     private readonly ConfigEntry<HealthTextFormat> healthTextFormat;
     private readonly ConfigEntry<bool> showEnemyName;
@@ -56,6 +57,7 @@ internal sealed class ModConfig
         barHeight = config.Bind(Texts.LayoutSection, "BarHeight", 0.14f, Texts.BarHeightDescription);
         worldScale = config.Bind(Texts.LayoutSection, "WorldScale", 0.7f, Texts.WorldScaleDescription);
         displayMode = config.Bind(Texts.LayoutSection, "DisplayMode", HealthBarDisplayMode.HorizontalBar, Texts.DisplayModeDescription);
+        barStyle = config.Bind(Texts.LayoutSection, "BarStyle", HealthBarVisualStyle.Segmented, Texts.BarStyleDescription);
         showHealthNumbers = config.Bind(Texts.LayoutSection, "ShowHealthNumbers", true, Texts.ShowHealthNumbersDescription);
         healthTextFormat = config.Bind(Texts.LayoutSection, "HealthTextFormat", HealthTextFormat.CurrentAndMax, Texts.HealthTextFormatDescription);
         showEnemyName = config.Bind(Texts.LayoutSection, "ShowEnemyName", false, Texts.ShowEnemyNameDescription);
@@ -113,6 +115,8 @@ internal sealed class ModConfig
 
     public HealthBarDisplayMode DisplayMode => displayMode.Value;
 
+    public HealthBarVisualStyle BarStyle => barStyle.Value;
+
     public bool ShowHealthNumbers => showHealthNumbers.Value;
 
     public HealthTextFormat HealthTextFormat => healthTextFormat.Value;
@@ -146,6 +150,8 @@ internal sealed class ModConfig
     internal ConfigEntry<float> WorldScaleEntry => worldScale;
 
     internal ConfigEntry<HealthBarDisplayMode> DisplayModeEntry => displayMode;
+
+    internal ConfigEntry<HealthBarVisualStyle> BarStyleEntry => barStyle;
 
     internal ConfigEntry<bool> ShowHealthNumbersEntry => showHealthNumbers;
 

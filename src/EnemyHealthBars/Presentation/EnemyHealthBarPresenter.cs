@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using Auuueser.EnemyHealthBars.Configuration;
 using Auuueser.EnemyHealthBars.Core.Configuration;
 using Auuueser.EnemyHealthBars.Core.Domain;
+using Auuueser.EnemyHealthBars.Core.Presentation;
 using UnityEngine;
 
 namespace Auuueser.EnemyHealthBars.Presentation;
@@ -15,6 +16,7 @@ internal sealed class EnemyHealthBarPresenter
     private readonly HealthBarPool pool;
     private readonly HealthBarTargetResolver targetResolver = new();
     private readonly Dictionary<int, ActiveHealthBar> activeBars = new();
+    private readonly Stack<ActiveHealthBar> freeBars = new();
     private readonly List<int> removeBuffer = new();
     private HealthBarView? debugTestBar;
 
@@ -29,20 +31,28 @@ internal sealed class EnemyHealthBarPresenter
 
     public bool DebugTestBarVisible => debugTestBar != null;
 
-    public void ShowOrUpdate(EnemyAI enemy, EnemyHealthSnapshot snapshot, Vector3 worldPosition, Camera camera, Quaternion billboardRotation)
+    public void ShowOrUpdate(EnemyAI enemy, EnemyHealthSnapshot snapshot, Camera camera, Quaternion billboardRotation)
     {
         if (!activeBars.TryGetValue(snapshot.EnemyId, out var activeBar))
         {
-            activeBar = new ActiveHealthBar(enemy, pool.Get());
+            activeBar = freeBars.Count > 0 ? freeBars.Pop() : new ActiveHealthBar();
+            activeBar.Attach(enemy, pool.Get(), warmUp: true);
             activeBars.Add(snapshot.EnemyId, activeBar);
         }
+        else if (activeBar.Enemy != enemy)
+        {
+            activeBar.Attach(enemy, activeBar.View, warmUp: true);
+        }
 
-        activeBar.Enemy = enemy;
         activeBar.Snapshot = snapshot;
-        activeBar.RefreshPosition(worldPosition, config.VerticalOffset, config.DisplayMode, Time.unscaledTime);
+        var worldPosition = activeBar.GetWorldPosition(
+            targetResolver,
+            config.VerticalOffset,
+            config.DisplayMode,
+            Time.unscaledTime);
         activeBar.View.SetHealth(snapshot);
         activeBar.View.SetWorldPosition(worldPosition, camera, billboardRotation);
-        activeBar.View.SetVisible(true);
+        activeBar.View.SetVisible(activeBar.IsWarm);
     }
 
     public void Hide(int enemyId)
@@ -54,6 +64,8 @@ internal sealed class EnemyHealthBarPresenter
 
         activeBars.Remove(enemyId);
         pool.Release(activeBar.View);
+        activeBar.Detach();
+        freeBars.Push(activeBar);
     }
 
     public void HideMissing(ISet<int> activeEnemyIds)
@@ -123,6 +135,7 @@ internal sealed class EnemyHealthBarPresenter
     public void UpdateActive(Camera camera, Quaternion billboardRotation)
     {
         removeBuffer.Clear();
+        var currentTime = Time.unscaledTime;
 
         foreach (var pair in activeBars)
         {
@@ -137,8 +150,10 @@ internal sealed class EnemyHealthBarPresenter
                 targetResolver,
                 config.VerticalOffset,
                 config.DisplayMode,
-                Time.unscaledTime);
+                currentTime);
             activeBar.View.SetWorldPosition(worldPosition, camera, billboardRotation);
+            activeBar.View.SetVisible(activeBar.IsWarm);
+            activeBar.View.Tick(currentTime);
         }
 
         foreach (var enemyId in removeBuffer)
@@ -162,47 +177,46 @@ internal sealed class EnemyHealthBarPresenter
         }
     }
 
-    public Vector3 GetWorldPosition(EnemyAI enemy)
-    {
-        return targetResolver.GetWorldPosition(enemy, config.VerticalOffset, config.DisplayMode);
-    }
-
+    // Bars follow the enemy root every frame at a smoothed offset toward the measured anchor
+    // (re-measured at a low rate). A newly attached bar stays hidden for a few frames so its first
+    // measurement comes after the enemy's animator has posed it, instead of a taller spawn pose.
     private sealed class ActiveHealthBar
     {
-        private Transform? cachedTransform;
-        private Vector3 cachedLocalPosition;
-        private Vector3 cachedWorldPosition;
+        private const int WarmupFrames = 3;
+
+        private Transform? rootTransform;
+        private Vector3 offset;
+        private Vector3 targetOffset;
+        private float lastFollowTime;
+        private int warmupEndFrame;
         private HealthBarDisplayMode cachedDisplayMode = (HealthBarDisplayMode)(-1);
         private float cachedVerticalOffset;
         private float nextTargetRefreshTime;
         private bool hasCachedPosition;
 
-        public ActiveHealthBar(EnemyAI enemy, HealthBarView view)
-        {
-            Enemy = enemy;
-            View = view;
-        }
-
-        public EnemyAI Enemy { get; set; }
+        public EnemyAI Enemy { get; private set; } = null!;
 
         public EnemyHealthSnapshot Snapshot { get; set; }
 
-        public HealthBarView View { get; }
+        public HealthBarView View { get; private set; } = null!;
 
-        public void RefreshPosition(
-            Vector3 worldPosition,
-            float verticalOffset,
-            HealthBarDisplayMode displayMode,
-            float currentTime)
+        public bool IsWarm => Time.frameCount >= warmupEndFrame;
+
+        public void Attach(EnemyAI enemy, HealthBarView view, bool warmUp)
         {
-            var followTransform = ResolveFollowTransform(Enemy);
-            cachedTransform = followTransform;
-            cachedWorldPosition = worldPosition;
-            cachedLocalPosition = followTransform != null ? followTransform.InverseTransformPoint(worldPosition) : worldPosition;
-            cachedVerticalOffset = verticalOffset;
-            cachedDisplayMode = displayMode;
-            nextTargetRefreshTime = currentTime + TargetPositionRefreshInterval;
-            hasCachedPosition = true;
+            Enemy = enemy;
+            View = view;
+            rootTransform = null;
+            warmupEndFrame = warmUp ? Time.frameCount + WarmupFrames : 0;
+            hasCachedPosition = false;
+        }
+
+        public void Detach()
+        {
+            Enemy = null!;
+            View = null!;
+            rootTransform = null;
+            hasCachedPosition = false;
         }
 
         public Vector3 GetWorldPosition(
@@ -211,44 +225,64 @@ internal sealed class EnemyHealthBarPresenter
             HealthBarDisplayMode displayMode,
             float currentTime)
         {
-            if (!hasCachedPosition ||
-                cachedDisplayMode != displayMode ||
-                cachedVerticalOffset != verticalOffset ||
-                currentTime >= nextTargetRefreshTime)
+            var settingsChanged = cachedDisplayMode != displayMode || cachedVerticalOffset != verticalOffset;
+            var snap = !hasCachedPosition || settingsChanged || rootTransform == null || !IsWarm;
+            if (snap || currentTime >= nextTargetRefreshTime)
             {
-                var resolvedPosition = targetResolver.GetWorldPosition(Enemy, verticalOffset, displayMode);
-                RefreshPosition(resolvedPosition, verticalOffset, displayMode, currentTime);
-                return resolvedPosition;
+                RefreshAnchor(targetResolver, verticalOffset, displayMode, currentTime, snap);
             }
 
-            if (cachedTransform == null)
+            if (rootTransform == null)
             {
-                var resolvedPosition = targetResolver.GetWorldPosition(Enemy, verticalOffset, displayMode);
-                RefreshPosition(resolvedPosition, verticalOffset, displayMode, currentTime);
-                return resolvedPosition;
+                // The enemy was destroyed; UpdateActive removes this bar on the same pass.
+                return Vector3.zero;
             }
 
-            cachedWorldPosition = cachedTransform.TransformPoint(cachedLocalPosition);
-            return cachedWorldPosition;
+            var deltaTime = currentTime - lastFollowTime;
+            lastFollowTime = currentTime;
+            offset = new Vector3(
+                HealthBarAnchorSmoothing.FollowHorizontal(offset.x, targetOffset.x, deltaTime),
+                HealthBarAnchorSmoothing.FollowHeight(offset.y, targetOffset.y, deltaTime),
+                HealthBarAnchorSmoothing.FollowHorizontal(offset.z, targetOffset.z, deltaTime));
+
+            var horizontal = YawRotation(rootTransform) * new Vector3(offset.x, 0f, offset.z);
+            return rootTransform.position + horizontal + Vector3.up * offset.y;
         }
 
-        private static Transform? ResolveFollowTransform(EnemyAI enemy)
+        private void RefreshAnchor(
+            HealthBarTargetResolver targetResolver,
+            float verticalOffset,
+            HealthBarDisplayMode displayMode,
+            float currentTime,
+            bool snap)
         {
-            if (enemy == null)
+            var enemy = Enemy;
+            rootTransform = enemy != null ? enemy.transform : null;
+            cachedVerticalOffset = verticalOffset;
+            cachedDisplayMode = displayMode;
+            nextTargetRefreshTime = currentTime + TargetPositionRefreshInterval;
+            if (enemy == null || rootTransform == null)
             {
-                return null;
+                hasCachedPosition = false;
+                return;
             }
 
-            if (enemy is MaskedPlayerEnemy)
+            var measured = targetResolver.GetWorldPosition(enemy, verticalOffset, displayMode);
+            var delta = measured - rootTransform.position;
+            var horizontal = Quaternion.Inverse(YawRotation(rootTransform)) * new Vector3(delta.x, 0f, delta.z);
+            targetOffset = new Vector3(horizontal.x, delta.y, horizontal.z);
+            if (snap)
             {
-                var head = enemy.GetRadarHeadTransform();
-                if (head != null)
-                {
-                    return head;
-                }
+                offset = targetOffset;
+                lastFollowTime = currentTime;
             }
 
-            return enemy.transform;
+            hasCachedPosition = true;
+        }
+
+        private static Quaternion YawRotation(Transform transform)
+        {
+            return Quaternion.Euler(0f, transform.eulerAngles.y, 0f);
         }
     }
 }

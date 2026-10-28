@@ -10,7 +10,20 @@ internal sealed class EnemyMaxHealthResolver
     {
         var cacheKey = ResolveCacheKey(enemy, displayName);
         var baseMaxHealth = ResolveBaseMaxHealth(enemy, cacheKey);
-        return ResolveSpecialMaxHealth(enemy, baseMaxHealth);
+        var maxHealth = ResolveSpecialMaxHealth(enemy, baseMaxHealth);
+        return maxHealth > 0 ? maxHealth + GetHealthOffset(enemy) : maxHealth;
+    }
+
+    // Manticoil and Tulip Snake HitEnemy kill on any hit without reading enemyHP.
+    public static bool IsOneHitKill(EnemyAI enemy)
+    {
+        return enemy is DoublewingAI || enemy is FlowerSnakeEnemy;
+    }
+
+    // Effective health = enemyHP + offset, for enemies that only die below zero enemyHP.
+    public static int GetHealthOffset(EnemyAI enemy)
+    {
+        return enemy is StingrayAI ? EnemySpecialMaxHealthRules.StingrayHealthOffset : 0;
     }
 
     public int UnresolvedCount => maxHealthLookup.UnresolvedCount;

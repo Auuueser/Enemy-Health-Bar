@@ -7,7 +7,8 @@ public readonly record struct EnemyHealthSample(
     int MaxHealth,
     bool IsDead,
     ulong NetworkObjectId = 0UL,
-    bool HasAuthoritativeMaxHealth = false)
+    bool HasAuthoritativeMaxHealth = false,
+    int HealthBeforeFirstHit = 0)
 {
     public EnemyHealthSample(
         int EnemyId,

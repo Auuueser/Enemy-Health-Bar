@@ -36,6 +36,7 @@ internal static class LethalConfigIntegration
             AddFloat(config.BarHeightEntry, texts.BarHeightName, texts.LayoutSection, texts.BarHeightDescription);
             AddFloat(config.WorldScaleEntry, texts.WorldScaleName, texts.LayoutSection, texts.WorldScaleDescription);
             AddEnum(config.DisplayModeEntry, texts.DisplayModeName, texts.LayoutSection, texts.DisplayModeDescription);
+            AddEnum(config.BarStyleEntry, texts.BarStyleName, texts.LayoutSection, texts.BarStyleDescription);
             AddBool(config.ShowHealthNumbersEntry, texts.ShowHealthNumbersName, texts.LayoutSection, texts.ShowHealthNumbersDescription);
             AddEnum(config.HealthTextFormatEntry, texts.HealthTextFormatName, texts.LayoutSection, texts.HealthTextFormatDescription);
             AddBool(config.ShowEnemyNameEntry, texts.ShowEnemyNameName, texts.LayoutSection, texts.ShowEnemyNameDescription);

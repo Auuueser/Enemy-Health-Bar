@@ -16,7 +16,8 @@ public sealed class EnemyHealthTracker
             observedHealth = ObservedEnemyHealth.FromSample(
                 trackedCurrentHealth,
                 !sample.HasAuthoritativeMaxHealth && ShouldSettleInitialFullHealth(sample, maxHealthMode),
-                ResolveInitialMaxObservedHealthFloor(sample));
+                ResolveInitialMaxObservedHealthFloor(sample),
+                sample.HealthBeforeFirstHit);
             if (sample.HasAuthoritativeMaxHealth)
             {
                 observedHealth.ApplyAuthoritativeSample(trackedCurrentHealth, sample.MaxHealth);
@@ -30,7 +31,11 @@ public sealed class EnemyHealthTracker
         }
         else
         {
-            observedHealth.ApplySample(trackedCurrentHealth, AllowsAdaptiveMaxHealth(maxHealthMode), sample.MaxHealth);
+            observedHealth.ApplySample(
+                trackedCurrentHealth,
+                AllowsAdaptiveMaxHealth(maxHealthMode),
+                sample.MaxHealth,
+                sample.HealthBeforeFirstHit);
         }
 
         var currentHealth = observedHealth.CurrentHealth;

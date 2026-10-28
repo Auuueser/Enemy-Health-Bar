@@ -42,7 +42,7 @@ internal sealed class HealthBarRuntime : IDisposable
             runtimeController.Initialize(
                 config,
                 logger,
-                new RoundManagerEnemySource(),
+                new EnemySource(),
                 new LocalPlayerCameraProvider(),
                 presenter);
 

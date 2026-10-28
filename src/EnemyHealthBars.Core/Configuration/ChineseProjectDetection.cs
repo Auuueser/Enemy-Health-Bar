@@ -4,13 +4,14 @@ namespace Auuueser.EnemyHealthBars.Core.Configuration;
 
 public static class ChineseProjectDetection
 {
-    private const string CurrentKnownGuid = "cn.codex.v81testchn";
+    private const string CurrentKnownGuid = "Aueser.LCChineseProject";
+    private const string LegacyKnownGuid = "cn.codex.v81testchn";
     private const string PackageName = "LC_Chinese_Project";
     private const string RepositoryUrl = "github.com/Auuueser/LC-Chinese-Project";
 
     public static bool IsChineseProjectPlugin(string? pluginGuid, string? pluginName, string? pluginLocation)
     {
-        if (EqualsIgnoreCase(pluginGuid, CurrentKnownGuid))
+        if (EqualsIgnoreCase(pluginGuid, CurrentKnownGuid) || EqualsIgnoreCase(pluginGuid, LegacyKnownGuid))
         {
             return true;
         }

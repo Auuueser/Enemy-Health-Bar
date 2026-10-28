@@ -14,6 +14,7 @@ internal sealed class HealthBarStyle
         float height,
         float worldScale,
         HealthBarDisplayMode displayMode,
+        HealthBarVisualStyle visualStyle,
         bool showHealthNumbers,
         HealthTextFormat healthTextFormat,
         bool showEnemyName,
@@ -25,6 +26,7 @@ internal sealed class HealthBarStyle
         Height = height;
         WorldScale = worldScale;
         DisplayMode = displayMode;
+        VisualStyle = visualStyle;
         ShowHealthNumbers = showHealthNumbers;
         HealthTextFormat = healthTextFormat;
         ShowEnemyName = showEnemyName;
@@ -40,6 +42,10 @@ internal sealed class HealthBarStyle
     public float WorldScale { get; }
 
     public HealthBarDisplayMode DisplayMode { get; }
+
+    public HealthBarVisualStyle VisualStyle { get; }
+
+    public bool IsSegmented => VisualStyle == HealthBarVisualStyle.Segmented;
 
     public bool ShowHealthNumbers { get; }
 
@@ -61,6 +67,18 @@ internal sealed class HealthBarStyle
 
     public Color TextColor { get; } = new(0.96f, 0.96f, 0.96f, 1f);
 
+    public Color FrameColor { get; } = new(0.03f, 0.035f, 0.04f, 0.82f);
+
+    public Color SegmentFillColor { get; } = new(0.95f, 0.64f, 0.23f, 1f);
+
+    public Color LowHealthFillColor { get; } = new(0.9f, 0.28f, 0.23f, 1f);
+
+    public Color EmptySegmentColor { get; } = new(0.15f, 0.165f, 0.17f, 1f);
+
+    public Color DamageTrailColor { get; } = new(0.95f, 0.83f, 0.63f, 1f);
+
+    public Color LowHealthTextColor { get; } = new(1f, 0.54f, 0.49f, 1f);
+
     public static HealthBarStyle FromConfig(ModConfig config)
     {
         return new HealthBarStyle(
@@ -68,6 +86,7 @@ internal sealed class HealthBarStyle
             config.BarHeight * PixelUnitScale,
             config.WorldScale * WorldScaleMultiplier,
             config.DisplayMode,
+            config.BarStyle,
             config.ShowHealthNumbers,
             config.HealthTextFormat,
             config.ShowEnemyName,

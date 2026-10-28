@@ -1,4 +1,5 @@
 using Auuueser.EnemyHealthBars.Configuration;
+using Auuueser.EnemyHealthBars.Game;
 using Auuueser.EnemyHealthBars.Runtime;
 using BepInEx;
 using BepInEx.Logging;
@@ -6,6 +7,7 @@ using BepInEx.Logging;
 namespace Auuueser.EnemyHealthBars;
 
 [BepInPlugin(PluginInfo.PluginGuid, PluginInfo.PluginName, PluginInfo.PluginVersion)]
+[BepInDependency("Aueser.LCChineseProject", BepInDependency.DependencyFlags.SoftDependency)]
 [BepInDependency("cn.codex.v81testchn", BepInDependency.DependencyFlags.SoftDependency)]
 [BepInDependency("ainavt.lc.lethalconfig", BepInDependency.DependencyFlags.SoftDependency)]
 [BepInProcess("Lethal Company.exe")]
@@ -26,6 +28,7 @@ public sealed class Plugin : BaseUnityPlugin
             LethalConfigIntegration.Register(config, Logger);
         }
 
+        EnemyHitPatches.Install(Logger);
         runtime = HealthBarRuntime.Start(config, Logger);
 
         Logger.LogInfo($"{PluginInfo.PluginName} {PluginInfo.PluginVersion} loaded.");

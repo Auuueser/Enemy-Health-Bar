@@ -22,6 +22,10 @@
       <HintPath>$(BepInExCoreDir)\BepInEx.dll</HintPath>
       <Private>false</Private>
     </Reference>
+    <Reference Include="0Harmony">
+      <HintPath>$(BepInExCoreDir)\0Harmony.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
     <Reference Include="LethalConfig">
       <HintPath>$(LethalConfigDir)\LethalConfig.dll</HintPath>
       <Private>false</Private>

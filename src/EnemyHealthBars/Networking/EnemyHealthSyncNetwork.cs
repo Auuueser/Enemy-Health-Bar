@@ -24,6 +24,7 @@ internal sealed class EnemyHealthSyncNetwork
     private readonly HashSet<ulong> syncClientIds = new();
     private readonly List<ulong> sendTargetClientIds = new();
     private readonly List<ulong> removedClientIds = new();
+    private readonly List<ulong> removedNetworkObjectIds = new();
     private readonly List<EnemyHealthSyncSnapshot> pendingSnapshots = new();
 
     private FastBufferWriter writer;
@@ -95,24 +96,24 @@ internal sealed class EnemyHealthSyncNetwork
         return clientSyncStartTime >= 0f && currentTime - clientSyncStartTime < ClientFallbackDelay;
     }
 
-    public void KeepOnlyClientSnapshots(ISet<ulong> activeNetworkObjectIds)
+    public void KeepOnly(ISet<ulong> activeNetworkObjectIds)
     {
         clientSnapshots.KeepOnly(activeNetworkObjectIds);
-    }
+        if (lastSentSnapshots.Count == 0)
+        {
+            return;
+        }
 
-    public void KeepOnlyHostSnapshots(ISet<ulong> activeNetworkObjectIds)
-    {
-        removedClientIds.Clear();
-
+        removedNetworkObjectIds.Clear();
         foreach (var networkObjectId in lastSentSnapshots.Keys)
         {
             if (!activeNetworkObjectIds.Contains(networkObjectId))
             {
-                removedClientIds.Add(networkObjectId);
+                removedNetworkObjectIds.Add(networkObjectId);
             }
         }
 
-        foreach (var networkObjectId in removedClientIds)
+        foreach (var networkObjectId in removedNetworkObjectIds)
         {
             lastSentSnapshots.Remove(networkObjectId);
             lastSentEnemyIds.Remove(networkObjectId);
@@ -197,6 +198,7 @@ internal sealed class EnemyHealthSyncNetwork
         syncClientIds.Clear();
         sendTargetClientIds.Clear();
         removedClientIds.Clear();
+        removedNetworkObjectIds.Clear();
         pendingSnapshots.Clear();
         lastSentSnapshots.Clear();
         lastSentEnemyIds.Clear();

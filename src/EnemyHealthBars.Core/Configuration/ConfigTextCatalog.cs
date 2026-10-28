@@ -41,6 +41,7 @@ public static class ConfigTextCatalog
         debugDiagnosticsLogIntervalName: "Diagnostic log interval",
         debugLogEnemyHealthSamplesName: "Log enemy health samples",
         debugShowTestBarName: "Show test bar",
+        barStyleName: "Bar style",
         enabledDescription: "Enable enemy health bars. Applied immediately.",
         showWhenFullHealthDescription: "Show bars for enemies that have not taken damage yet. Applied immediately.",
         showInvulnerableEnemiesDescription: "Show bars for enemies whose EnemyType cannot die. Applied immediately.",
@@ -54,9 +55,9 @@ public static class ConfigTextCatalog
         barWidthDescription: "World-space canvas width before scale is applied. Applied immediately.",
         barHeightDescription: "World-space canvas height before scale is applied. Applied immediately.",
         worldScaleDescription: "World-space canvas scale. Applied immediately.",
-        displayModeDescription: "Health bar layout mode: horizontal bar, side vertical bar, or numbers only. Applied immediately.",
+        displayModeDescription: "Health bar layout mode: HorizontalBar = bar above the enemy, VerticalSideBar = vertical bar beside the enemy, NumbersOnly = health text only. Applied immediately.",
         showHealthNumbersDescription: "Show current and max health text on enemy health bars. Applied immediately.",
-        healthTextFormatDescription: "Health text format: Current / max, current only, or percent only. Applied immediately.",
+        healthTextFormatDescription: "Health text format: CurrentAndMax = Current / max, CurrentOnly = current health only, PercentOnly = percent only. Applied immediately.",
         showEnemyNameDescription: "Show the enemy name beside the health number text. Applied immediately.",
         sideBarWidthDescription: "Vertical side-bar width before scale is applied. Applied immediately.",
         sideBarHeightDescription: "Vertical side-bar height before scale is applied. Applied immediately.",
@@ -66,7 +67,8 @@ public static class ConfigTextCatalog
         debugDiagnosticsEnabledDescription: "Debug only: log low-frequency runtime, camera, scan, and active-bar counters. Requires debug mode. Applied immediately.",
         debugDiagnosticsLogIntervalDescription: "Debug only: seconds between diagnostic log lines. Applied immediately.",
         debugLogEnemyHealthSamplesDescription: "Debug only: include per-enemy current health, resolved max health, and visibility result in diagnostic logs. Requires debug diagnostics. Applied immediately.",
-        debugShowTestBarDescription: "Debug only: render a fixed test health bar in front of the active camera. Requires debug mode. Applied immediately.");
+        debugShowTestBarDescription: "Debug only: render a fixed test health bar in front of the active camera. Requires debug mode. Applied immediately.",
+        barStyleDescription: "Health bar look: Segmented = one segment per health point, turns red at low health, and briefly shows the damage just taken; Classic = the original single red bar. Applied immediately.");
 
     private static readonly ConfigTexts Chinese = new(
         generalSection: "通用",
@@ -102,10 +104,11 @@ public static class ConfigTextCatalog
         debugDiagnosticsLogIntervalName: "诊断日志间隔",
         debugLogEnemyHealthSamplesName: "记录怪物血量采样",
         debugShowTestBarName: "显示测试血条",
+        barStyleName: "血条风格",
         enabledDescription: "启用怪物血条。保存后立即生效。",
         showWhenFullHealthDescription: "显示未受伤怪物的满血血条。保存后立即生效。",
         showInvulnerableEnemiesDescription: "显示 EnemyType 标记为不可死亡的怪物血条。保存后立即生效。",
-        maxHealthModeDescription: "最大血量计算方式：VanillaStrict 使用原版默认值，Adaptive 使用实际观察到的怪物血量，Hybrid 保留原版特殊规则并适应模组修改后的血量。保存后立即生效。",
+        maxHealthModeDescription: "最大血量计算方式：VanillaStrict = 使用原版默认值；Adaptive = 使用实际观察到的怪物血量；Hybrid = 保留原版特殊规则并适应模组修改后的血量。保存后立即生效。",
         maxDistanceDescription: "血条最大显示距离。设置为 0 或更低表示不限制距离。保存后立即生效。",
         scanIntervalDescription: "刷新怪物列表的间隔秒数。保存后立即生效。",
         hostAuthoritySyncDescription: "主机和客机都安装本模组时，同步主机端实际怪物血量。保存后立即生效。",
@@ -115,9 +118,9 @@ public static class ConfigTextCatalog
         barWidthDescription: "应用缩放前的世界空间血条宽度。保存后立即生效。",
         barHeightDescription: "应用缩放前的世界空间血条高度。保存后立即生效。",
         worldScaleDescription: "世界空间血条缩放。保存后立即生效。",
-        displayModeDescription: "血条布局模式：横向血条、身旁竖条或纯数字。保存后立即生效。",
+        displayModeDescription: "血条布局模式：HorizontalBar = 怪物头顶横向血条；VerticalSideBar = 怪物身旁竖向血条；NumbersOnly = 只显示血量数字。保存后立即生效。",
         showHealthNumbersDescription: "在怪物血条上显示当前血量和满血血量文字。保存后立即生效。",
-        healthTextFormatDescription: "血量文字格式：当前 / 满血、仅当前血量或仅百分比。保存后立即生效。",
+        healthTextFormatDescription: "血量文字格式：CurrentAndMax = 当前 / 满血；CurrentOnly = 仅当前血量；PercentOnly = 仅百分比。保存后立即生效。",
         showEnemyNameDescription: "在血量数字旁显示怪物名称。保存后立即生效。",
         sideBarWidthDescription: "应用缩放前的竖向侧边血条宽度。保存后立即生效。",
         sideBarHeightDescription: "应用缩放前的竖向侧边血条高度。保存后立即生效。",
@@ -127,5 +130,6 @@ public static class ConfigTextCatalog
         debugDiagnosticsEnabledDescription: "仅调试：输出低频运行时、相机、扫描和活动血条计数日志。需要启用调试模式。保存后立即生效。",
         debugDiagnosticsLogIntervalDescription: "仅调试：两次诊断日志之间的秒数。保存后立即生效。",
         debugLogEnemyHealthSamplesDescription: "仅调试：在诊断日志中记录每个怪物的当前血量、解析出的满血血量和可见性结果。需要启用诊断日志。保存后立即生效。",
-        debugShowTestBarDescription: "仅调试：在活动相机前方渲染固定测试血条。需要启用调试模式。保存后立即生效。");
+        debugShowTestBarDescription: "仅调试：在活动相机前方渲染固定测试血条。需要启用调试模式。保存后立即生效。",
+        barStyleDescription: "血条外观：Segmented = 新风格，每 1 点血一格，残血变红，并短暂显示刚受到的伤害；Classic = 传统风格，原来的单条红色血条。保存后立即生效。");
 }

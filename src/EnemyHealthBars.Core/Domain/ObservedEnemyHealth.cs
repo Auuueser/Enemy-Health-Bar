@@ -32,6 +32,8 @@ public sealed class ObservedEnemyHealth
 
     private bool lowerMaxSettled;
 
+    private bool hitObserved;
+
     public float HealthFraction
     {
         get
@@ -51,22 +53,55 @@ public sealed class ObservedEnemyHealth
         }
     }
 
-    public static ObservedEnemyHealth FromSample(int currentHealth, bool isSpawnHealthSettling = false, int maxObservedHealthFloor = 0)
+    public static ObservedEnemyHealth FromSample(
+        int currentHealth,
+        bool isSpawnHealthSettling = false,
+        int maxObservedHealthFloor = 0,
+        int healthBeforeFirstHit = 0)
     {
         var normalizedHealth = NormalizeHealth(currentHealth);
+        if (healthBeforeFirstHit > maxObservedHealthFloor)
+        {
+            maxObservedHealthFloor = healthBeforeFirstHit;
+        }
+
         var normalizedMaxHealth = maxObservedHealthFloor > normalizedHealth ? maxObservedHealthFloor : normalizedHealth;
-        return new ObservedEnemyHealth(normalizedHealth, normalizedMaxHealth, isSpawnHealthSettling && normalizedHealth > 0);
+        var wasHit = healthBeforeFirstHit > 0;
+        var observedHealth = new ObservedEnemyHealth(normalizedHealth, normalizedMaxHealth, isSpawnHealthSettling && normalizedHealth > 0 && !wasHit);
+        if (wasHit)
+        {
+            observedHealth.hitObserved = true;
+            observedHealth.lowerMaxSettled = true;
+        }
+
+        return observedHealth;
     }
 
-    public void ApplySample(int currentHealth, bool allowSpawnSettleMaxDecrease = false, int strictMaxHealth = 0)
+    public void ApplySample(
+        int currentHealth,
+        bool allowSpawnSettleMaxDecrease = false,
+        int strictMaxHealth = 0,
+        int healthBeforeFirstHit = 0)
     {
         CurrentHealth = NormalizeHealth(currentHealth);
         SamplesSeen++;
+        if (healthBeforeFirstHit > 0 && !hitObserved)
+        {
+            ApplyFirstHit(healthBeforeFirstHit, allowSpawnSettleMaxDecrease, strictMaxHealth);
+        }
+
         UpdateSpawnHealthSettling();
 
         if (CurrentHealth > MaxObservedHealth)
         {
             MaxObservedHealth = CurrentHealth;
+            ClearLowerMaxCandidate();
+        }
+        else if (IsEarlyDropToStrictMax(allowSpawnSettleMaxDecrease, strictMaxHealth))
+        {
+            // Spawn code set the vanilla value after the first sample (prefab 8 -> Butler 2).
+            MaxObservedHealth = CurrentHealth;
+            lowerMaxSettled = true;
             ClearLowerMaxCandidate();
         }
         else if (CanSettleMaxHealthDown(allowSpawnSettleMaxDecrease, strictMaxHealth))
@@ -95,6 +130,32 @@ public sealed class ObservedEnemyHealth
         ClearLowerMaxCandidate();
     }
 
+    private void ApplyFirstHit(int healthBeforeFirstHit, bool allowSpawnSettleMaxDecrease, int strictMaxHealth)
+    {
+        // Nothing damaged the enemy before its first hit, so the health right before that hit is its spawn health.
+        if (allowSpawnSettleMaxDecrease &&
+            !lowerMaxSettled &&
+            SamplesSeen <= InitialFullHealthSettleSampleLimit &&
+            (strictMaxHealth <= 0 || MaxObservedHealth <= strictMaxHealth))
+        {
+            MaxObservedHealth = healthBeforeFirstHit;
+        }
+        else if (healthBeforeFirstHit > MaxObservedHealth)
+        {
+            MaxObservedHealth = healthBeforeFirstHit;
+        }
+
+        if (MaxObservedHealth < CurrentHealth)
+        {
+            MaxObservedHealth = CurrentHealth;
+        }
+
+        hitObserved = true;
+        lowerMaxSettled = true;
+        IsSpawnHealthSettling = false;
+        ClearLowerMaxCandidate();
+    }
+
     private void UpdateSpawnHealthSettling()
     {
         if (!IsSpawnHealthSettling)
@@ -108,12 +169,24 @@ public sealed class ObservedEnemyHealth
         }
     }
 
+    private bool IsEarlyDropToStrictMax(bool allowSpawnSettleMaxDecrease, int strictMaxHealth)
+    {
+        return allowSpawnSettleMaxDecrease &&
+            strictMaxHealth > 0 &&
+            CurrentHealth == strictMaxHealth &&
+            MaxObservedHealth > strictMaxHealth &&
+            SamplesSeen <= InitialFullHealthSettleSampleLimit &&
+            !hitObserved &&
+            !lowerMaxSettled;
+    }
+
     private bool CanSettleMaxHealthDown(bool allowSpawnSettleMaxDecrease, int strictMaxHealth)
     {
         return allowSpawnSettleMaxDecrease &&
             SamplesSeen <= InitialFullHealthSettleSampleLimit &&
             (strictMaxHealth <= 0 || MaxObservedHealth <= strictMaxHealth) &&
             CurrentHealth > 0 &&
+            !hitObserved &&
             !lowerMaxSettled &&
             !lowerMaxCandidateRejected &&
             CurrentHealth < MaxObservedHealth;
